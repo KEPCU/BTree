@@ -8,10 +8,10 @@
 #include <sstream>
 
 using namespace std;
-#define LineBreak 5
+#define LineBreak 10
 
 
-#define MinimumSize 3
+#define MinimumSize 2
 #define MaximumSize 4
 
 struct BTree {
@@ -95,10 +95,10 @@ void SplitBranch(int key, int* ptrKey, int position, BTree* branch, BTree** newB
   bTree->KeysNumber--;
 }
 
-bool InsertKey(int key, int* ptrUpperKey, BTree* node, BTree** child) {
+bool InsertKey(int key, int* ptrUpperKey, BTree* node, BTree** branch) {
   if (!node) {
     *ptrUpperKey = key;
-    *child = NULL;
+    *branch = NULL;
     return true;
   }
 
@@ -112,10 +112,10 @@ bool InsertKey(int key, int* ptrUpperKey, BTree* node, BTree** child) {
     }
   }
 
-  if(InsertKey(key, ptrUpperKey, node->Banchs[position], child)) {
-    if(node->KeysNumber < MaximumSize) AddBranch(*ptrUpperKey, position, node, *child);
+  if(InsertKey(key, ptrUpperKey, node->Banchs[position], branch)) {
+    if(node->KeysNumber < MaximumSize) AddBranch(*ptrUpperKey, position, node, *branch);
     else {
-      SplitBranch(*ptrUpperKey, ptrUpperKey, position, *child, child, node);
+      SplitBranch(*ptrUpperKey, ptrUpperKey, position, *branch, branch, node);
       return true;
     }
   }
