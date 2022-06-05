@@ -16,7 +16,7 @@ using namespace std;
 
 struct BTree {
   int Keys[MaximumSize + 1];
-  BTree *Banchs[MaximumSize + 1];
+  BTree *Branchs[MaximumSize + 1];
   int KeysNumber;
 };
 
@@ -27,13 +27,13 @@ BTree* Initialize(int key, BTree* branch) {
   newNode = (BTree*)malloc(sizeof(BTree));
   newNode->Keys[1] = key;
   newNode->KeysNumber = 1;
-  newNode->Banchs[0] = Root;
-  newNode->Banchs[1] = branch;
+  newNode->Branchs[0] = Root;
+  newNode->Branchs[1] = branch;
   return newNode;
 }
 
 void Search(int key, BTree* bTree, int height, int indexBranch, int* position) {
-  if (bTree == NULL){ 
+  if (bTree == NULL) { 
     cout<<"no found: "<< key<<endl;
     return;
   }
@@ -41,12 +41,12 @@ void Search(int key, BTree* bTree, int height, int indexBranch, int* position) {
   else {
     for (*position = bTree->KeysNumber; (key < bTree->Keys[*position] && *position > 1); (*position)--);
     if (key == bTree->Keys[*position]) {
-      cout<<"found: "<<key<<" in ("<<height+1<<" x "<<indexBranch<<")"<<endl;
+      cout<<"found: "<<key<<" in ("<<height+1<<" x "<<indexBranch<<") "<<" ["<<*position<<"]"<<endl;
       return;
     }
   }
   height++;
-  Search(key, bTree->Banchs[*position], height, *position, position);
+  Search(key, bTree->Branchs[*position], height, *position, position);
   return;
 }
 
@@ -54,10 +54,10 @@ void Print(BTree* bTree) {
   if (bTree != NULL) {
     int i;
     for (i = 0; i < bTree->KeysNumber; i++) {
-      Print(bTree->Banchs[i]);
+      Print(bTree->Branchs[i]);
       cout<<bTree->Keys[i + 1]<<", ";
     }
-    Print(bTree->Banchs[i]);
+    Print(bTree->Branchs[i]);
   }
 }
 
@@ -65,10 +65,10 @@ void AddBranch(int key, int position, BTree* bTree, BTree* branch) {
   int i = bTree->KeysNumber;
   for ( ; i > position; i--) {
     bTree->Keys[i + 1] = bTree->Keys[i];
-    bTree->Banchs[i + 1] = bTree->Banchs[i];
+    bTree->Branchs[i + 1] = bTree->Branchs[i];
   }
   bTree->Keys[i + 1] = key;
-  bTree->Banchs[i + 1] = branch;
+  bTree->Branchs[i + 1] = branch;
   bTree->KeysNumber++;
 }
 
@@ -81,7 +81,7 @@ void SplitBranch(int key, int* ptrKey, int position, BTree* branch, BTree** newB
 
   for(int i = minimumBranchs + 1; i <= MaximumSize; i++) {
     (*newBranch)->Keys[i - minimumBranchs] = bTree->Keys[i];
-    (*newBranch)->Banchs[i - minimumBranchs] = bTree->Banchs[i];
+    (*newBranch)->Branchs[i - minimumBranchs] = bTree->Branchs[i];
   }
 
   bTree->KeysNumber = minimumBranchs;
@@ -91,7 +91,7 @@ void SplitBranch(int key, int* ptrKey, int position, BTree* branch, BTree** newB
   else AddBranch(key, position, bTree, branch); 
   
   *ptrKey = bTree->Keys[bTree->KeysNumber];
-  (*newBranch)->Banchs[0] = bTree->Banchs[bTree->KeysNumber];
+  (*newBranch)->Branchs[0] = bTree->Branchs[bTree->KeysNumber];
   bTree->KeysNumber--;
 }
 
@@ -112,7 +112,7 @@ bool InsertKey(int key, int* ptrUpperKey, BTree* node, BTree** branch) {
     }
   }
 
-  if(InsertKey(key, ptrUpperKey, node->Banchs[position], branch)) {
+  if(InsertKey(key, ptrUpperKey, node->Branchs[position], branch)) {
     if(node->KeysNumber < MaximumSize) AddBranch(*ptrUpperKey, position, node, *branch);
     else {
       SplitBranch(*ptrUpperKey, ptrUpperKey, position, *branch, branch, node);
@@ -134,17 +134,48 @@ void PrintTree(BTree* bTree, int height, int indexBranch) {
     cout<<"("<<height<<" x "<<indexBranch<<") ";
     for (int i = 0; i < bTree->KeysNumber; i++) cout<<" "<<bTree->Keys[i + 1]<<" ";
     cout<<endl;
-    for (int i = 0; i <= bTree->KeysNumber; i++) PrintTree(bTree->Banchs[i],height,i);
+    for (int i = 0; i <= bTree->KeysNumber; i++) PrintTree(bTree->Branchs[i],height,i);
   }
 }
 
-void RemoveKey(BTree* bTree, int position) {
-  int i = position + 1;
-  for(int i = position + 1; i <= bTree->KeysNumber; i++) {
-    bTree->Keys[i - 1] = bTree->Keys[i];
-    bTree->Banchs[i - 1] = bTree->Banchs[i];
+int *GetPosition(int key, BTree* bTree, int height, int indexBranch, int* position) {
+  if (bTree == NULL) return NULL;
+  if (key < bTree->Keys[1]) *position = 0;
+  else {
+    for (*position = bTree->KeysNumber; (key < bTree->Keys[*position] && *position > 1); (*position)--);
+    if (key == bTree->Keys[*position]) {
+      int positions[3] = { height+1 , indexBranch , *position };
+      return positions;
+      
+    }
   }
-  bTree->KeysNumber--;
+  height++;
+  return GetPosition(key, bTree->Branchs[*position], height, *position, position);
+}
+
+void RemoveKey(BTree* bTree, int key) {
+  int j;
+  int *positions = GetPosition(key, bTree, -1, 0, &j);
+  if(positions != NULL) {
+    int g = 0;
+    for(int j = 0; j < bTree->KeysNumber + 1; j++) if(bTree->Branchs[j]) g++;
+    if(g < 3) {
+      int i = key + 1;
+      for(int i = key + 1; i <= bTree->KeysNumber; i++) {
+        bTree->Keys[i - 1] = bTree->Keys[i];
+        bTree->Branchs[i - 1] = bTree->Branchs[i];
+      }
+      bTree->KeysNumber--;
+    }
+    else {
+      int branchs = bTree->KeysNumber;
+      if(bTree->Keys[branchs] == key) {
+        bTree->Keys[branchs] = key;
+      }
+      branchs = (bTree->Branchs[bTree->KeysNumber])->KeysNumber;
+      cout<<bTree->Branchs[bTree->KeysNumber]->Keys[0]<<" branchs"<<endl; 
+    }
+  }
 }
 
 void Read(string fileName) {
@@ -176,10 +207,10 @@ void GetString(BTree* bTree,fstream* ExportFile) {
   if (bTree != NULL) {
     int i;
     for (i = 0; i < bTree->KeysNumber; i++) {
-      GetString(bTree->Banchs[i],&(*ExportFile));
+      GetString(bTree->Branchs[i],&(*ExportFile));
       (*ExportFile)<<to_string(bTree->Keys[i + 1])+",";
     }
-    GetString(bTree->Banchs[i],&(*ExportFile));
+    GetString(bTree->Branchs[i],&(*ExportFile));
   }
 }
 
